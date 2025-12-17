@@ -1,0 +1,10 @@
+pandas
+numpy
+plotly
+streamlit
+prophet
+statsmodels
+tensorflow
+scikit-learn
+matplotlib
+seaborn
