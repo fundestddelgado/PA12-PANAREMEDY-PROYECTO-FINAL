@@ -1,23 +1,7 @@
 
-Motor de Sugerencias para Optimización de Inventario
+Instalación y ejecución
 
-Proyecto 12 — Motor de sugerencias para optimización de inventario en tiendas pequeñas.
-
-Descripción
-Muchos negocios pequeños no saben cuánto stock pedir. Este proyecto genera pronósticos semanales de demanda y sugiere niveles de reorden para evitar quiebres o exceso.
-
-Contenido
-- `data/generate_sales.py`: script para generar ventas sintéticas (CSV semanal).
-- `requirements.txt`: dependencias necesarias.
-- `src/data_manager.py`: funciones de generación, carga y preprocesamiento.
-- `src/stat_models.py`: implementaciones Prophet y ARIMA.
-- `src/dl_models.py`: LSTM (escalado, secuencias, entrenamiento y predicción).
-- `src/inventory_logic.py`: cálculo de punto de reorden y cantidad a pedir.
-- `src/main_app.py`: app Streamlit para visualizar pronósticos y sugerencias.
-- `scripts/run_compare.py`: script para comparar modelos y calcular métricas.
-- `notebooks/compare_models.ipynb`: notebook interactivo con comparación.
-
-Instalación (recomendado en virtualenv)
+Instalación
 
 ```powershell
 python -m venv .venv
@@ -25,36 +9,30 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-Notas sobre dependencias (Windows)
-- `prophet` puede requerir compilación adicional en Windows; si hay problemas, use WSL o instale con `conda`:
+Ejecutar tests
 
 ```powershell
-conda install -c conda-forge prophet
+.\.venv\Scripts\Activate.ps1
+$env:PYTHONPATH="src"
+python -m pytest -q
 ```
 
-- `tensorflow` puede instalarse con `pip install tensorflow` en Windows 64-bit; para máquinas con GPU consulte la guía oficial.
-
-Comandos útiles
+Comparación automática de modelos
 
 ```powershell
-# Generar dataset de ejemplo
-python data/generate_sales.py --out data/sales_sample.csv
+.\.venv\Scripts\Activate.ps1
+$env:PYTHONPATH="src"
+python scripts/compare_models.py
+```
 
-# Ejecutar el dashboard Streamlit
+Ejecutar la app Streamlit
+
+```powershell
+.\.venv\Scripts\Activate.ps1
 streamlit run src/main_app.py
-
-# Ejecutar comparación automática (script)
-python scripts/run_compare.py --csv data/sales_sample.csv --sku SKU_1 --weeks 12
 ```
 
-Notebook de comparación
+Nota (Windows)
 
-Se incluye `notebooks/compare_models.ipynb` con un flujo interactivo que carga los datos, entrena Prophet / ARIMA / LSTM y calcula MAE/RMSE. Ejecute con Jupyter Lab/Notebook:
+Si `pip install tensorflow` falla por rutas largas, cree el venv en una ruta corta (ej. `C:\proj\optinv_venv`) o use `conda`.
 
-```powershell
-jupyter lab
-```
-
-Interpretación rápida
-- Si la predicción muestra alta varianza, ajuste stock de seguridad o reduzca el horizonte de pedido.
-- Compare MAE/RMSE entre modelos y prefiera el modelo con menor error y que sea estable en picos estacionales.
