@@ -4,7 +4,10 @@ plotly
 streamlit
 prophet
 statsmodels
-tensorflow
+tensorflow>=2.10
 scikit-learn
 matplotlib
 seaborn
+pytest
+black
+flake8
