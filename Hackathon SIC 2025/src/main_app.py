@@ -1,4 +1,12 @@
 """Aplicación Streamlit que integra los módulos y presenta dashboard de inventario."""
+# Ensure project root is on sys.path so `src` package imports work when running
+# the script via `streamlit run src/main_app.py` (Streamlit may change import context).
+import sys
+from pathlib import Path
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -124,9 +132,30 @@ def main():
             color = '✅' if qty == 0 else '🔴'
             st.markdown(f'**Punto de reorden:** {punto:.0f} — {color} **Sugerencia:** {qty} unidades')
 
+        # ARIMA button
+        if st.button('Predecir con ARIMA'):
+            # preparar df semanal con columnas date/sales
+            df_arima = res.rename(columns={'date': 'date', 'sales': 'sales'})[['date', 'sales']]
+            try:
+                pred_arima = entrenar_arima(df_arima, pasos_futuros=semanas_pred, frecuencia=freq)
+                # add to plot
+                fig.add_trace(go.Scatter(x=pred_arima.index, y=pred_arima.values, name='arima'))
+                st.plotly_chart(fig, use_container_width=True)
+
+                mean_pred = float(pred_arima.mean())
+                stock_seg = float(pred_arima.std()) * 1.65
+                punto = calcular_punto_reorden(mean_pred, lead_time, stock_seg)
+                stock_actual = int(st.number_input('Stock actual', min_value=0, value=50, key='arima_stock'))
+                qty = calcular_cantidad_a_pedir(stock_actual, punto, objetivo_max)
+                color = '✅' if qty == 0 else '🔴'
+                st.markdown(f'**Punto de reorden:** {punto:.0f} — {color} **Sugerencia:** {qty} unidades')
+            except Exception as e:
+                st.error(f'ARIMA falló: {e}')
+
     with col2:
         if st.button('Predecir con LSTM'):
-            series = res.set_index('date')['sales'].asfreq('W').fillna(method='ffill')
+            # use selected frecuencia (W or M)
+            series = res.set_index('date')['sales'].asfreq(freq).fillna(method='ffill')
             scaled, scaler = escalar_datos(series.values)
             look_back = 8
             X, y = crear_secuencias(scaled, look_back=look_back)
@@ -136,7 +165,13 @@ def main():
                 model = construir_y_entrenar_lstm(X, y, epochs=20, verbose=0)
                 ult = scaled[-look_back:].flatten()
                 preds = predecir_lstm(model, ult, scaler, pasos=semanas_pred)
-                idx = pd.date_range(pd.to_datetime(series.index[-1]) + pd.Timedelta(weeks=1), periods=semanas_pred, freq='W')
+                # build future index using selected frecuencia
+                if freq == 'W':
+                    start = pd.to_datetime(series.index[-1]) + pd.Timedelta(weeks=1)
+                else:
+                    # for monthly, add one month
+                    start = pd.to_datetime(series.index[-1]) + pd.offsets.MonthBegin(1)
+                idx = pd.date_range(start, periods=semanas_pred, freq=freq)
                 fig.add_trace(go.Scatter(x=idx, y=preds, name='lstm'))
                 st.plotly_chart(fig, use_container_width=True)
 
