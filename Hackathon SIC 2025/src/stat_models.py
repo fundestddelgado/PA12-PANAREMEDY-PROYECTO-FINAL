@@ -38,7 +38,7 @@ def entrenar_prophet(df_semanal: pd.DataFrame, semanas_a_predecir: int = 12) -> 
     return forecast, m
 
 
-def entrenar_arima(df_semanal: pd.DataFrame, pasos_futuros: int = 12) -> pd.Series:
+def entrenar_arima(df_semanal: pd.DataFrame, pasos_futuros: int = 12, frecuencia: str = 'W') -> pd.Series:
     from statsmodels.tsa.arima.model import ARIMA
 
     df = df_semanal.copy()
@@ -61,9 +61,10 @@ def entrenar_arima(df_semanal: pd.DataFrame, pasos_futuros: int = 12) -> pd.Seri
         raise ValueError('Formato de DataFrame no reconocido')
 
     s = df.set_index(date_col)[sales_col]
-    # ensure datetime index and weekly frequency
+    # ensure datetime index and requested frequency
     s.index = pd.to_datetime(s.index, errors='coerce')
-    s = s.asfreq('W')
+    # use the frecuencia parameter instead of hardcoding 'W'
+    s = s.asfreq(frecuencia)
 
     s = s.fillna(method='ffill').fillna(0)
     model = ARIMA(s, order=(5, 1, 0)).fit()
@@ -78,3 +79,4 @@ def calcular_metricas(y_real: np.ndarray, y_pred: np.ndarray):
     mae = np.mean(np.abs(y_real - y_pred))
     rmse = np.sqrt(np.mean((y_real - y_pred) ** 2))
     return {'MAE': float(mae), 'RMSE': float(rmse)}
+
